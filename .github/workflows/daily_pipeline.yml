@@ -1,0 +1,42 @@
+name: Daily SmokeSignal Ludhiana Forecast
+
+on:
+  schedule:
+    - cron: '30 12 * * *'  # Runs daily at 6:00 PM IST (12:30 UTC)
+  workflow_dispatch:       # Allows manual 1-click trigger in GitHub
+
+permissions:
+  contents: write
+
+jobs:
+  update-forecast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run ETL Pipeline, Train/Predict, & Send Alert
+        env:
+          NASA_FIRMS_MAP_KEY: ${{ secrets.NASA_FIRMS_MAP_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python data_pipeline.py
+          python train_and_explain.py
+          python alerts.py
+
+      - name: Commit updated forecast artifacts back to repo
+        run: |
+          git config user.name "SmokeSignal-Bot"
+          git config user.email "actions@github.com"
+          git add data/recent_fires_map.csv artifacts/
+          git diff --staged --quiet || git commit -m "Automated daily forecast update"
+          git push
