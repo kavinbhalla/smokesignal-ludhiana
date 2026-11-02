@@ -1,16 +1,16 @@
 {
-  "forecast_generated_on": "2026-11-01",
-  "today_pm25": 83.2,
+  "forecast_generated_on": "2026-11-03",
+  "today_pm25": 71.2,
   "today_category": "Moderate",
-  "tomorrow_pm25_xgb": 90.5,
-  "tomorrow_category_xgb": "Poor",
-  "tomorrow_pm25_baseline": 83.2,
-  "fire_count_150km_today": 174,
-  "nw_cluster_fires_today": 52,
-  "wind_speed_kmh": 4.5,
-  "wind_dir_deg": 301.0,
-  "blh_m": 346.0,
-  "best_lag_hours": 33,
+  "tomorrow_pm25_xgb": 80.1,
+  "tomorrow_category_xgb": "Moderate",
+  "tomorrow_pm25_baseline": 71.2,
+  "fire_count_150km_today": 173,
+  "nw_cluster_fires_today": 56,
+  "wind_speed_kmh": 8.5,
+  "wind_dir_deg": 299.0,
+  "blh_m": 316.0,
+  "best_lag_hours": 32,
   "metrics_2024_2025": {
     "baseline_mae": 10.63,
     "xgb_mae": 12.2,
@@ -23,29 +23,29 @@
   },
   "top_shap_drivers": [
     {
-      "feature": "pm25_today",
-      "value": 83.18,
-      "shap_impact_ugm3": 14.91
+      "feature": "pm25_roll3",
+      "value": 83.0,
+      "shap_impact_ugm3": -11.77
     },
     {
-      "feature": "pm25_roll3",
-      "value": 66.2,
-      "shap_impact_ugm3": -13.74
+      "feature": "pm25_today",
+      "value": 71.22,
+      "shap_impact_ugm3": 5.43
     },
     {
       "feature": "upwind_frp_index",
-      "value": 33.03,
-      "shap_impact_ugm3": 5.1
+      "value": 30.61,
+      "shap_impact_ugm3": 5.29
     },
     {
       "feature": "fire_count_150km",
-      "value": 174.0,
-      "shap_impact_ugm3": 4.82
+      "value": 173.0,
+      "shap_impact_ugm3": 4.08
     },
     {
-      "feature": "upwind_frp_roll2",
-      "value": 32.15,
-      "shap_impact_ugm3": -2.51
+      "feature": "wind_dir_deg",
+      "value": 299.21,
+      "shap_impact_ugm3": 3.06
     }
   ]
 }
