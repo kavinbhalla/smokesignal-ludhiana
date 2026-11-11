@@ -164,15 +164,15 @@ def fetch_firms_fires(df_hourly):
             if d.month in [10, 11]:
                 day_of_season = (d - pd.Timestamp(year=d.year, month=10, day=1)).days
                 intensity = np.exp(-0.5 * ((day_of_season - 32) / 11.0) ** 2)
-                n_fires = np.random.poisson(lam=int(180 * intensity) + 3)
+                n_fires = np.random.poisson(lam=int(280 * intensity) + 3)
             elif d.month in [4, 5]:
                 n_fires = np.random.poisson(lam=18)
             else:
                 n_fires = np.random.poisson(lam=1)
 
             if n_fires > 0:
-                lats = PAU_LAT + np.random.normal(loc=-0.15, scale=0.55, size=n_fires)
-                lons = PAU_LON + np.random.normal(loc=-0.25, scale=0.60, size=n_fires)
+                lats = 30.90 + np.random.uniform(low=-1.15, high=1.15, size=n_fires)
+                lons = 75.55 + np.random.uniform(low=-1.25, high=1.25, size=n_fires)
                 frps = np.random.gamma(shape=2.2, scale=12.0, size=n_fires)
                 acq_times = np.random.choice(["0830", "1330", "1415", "2045"], size=n_fires)
                 for la, lo, frp, at in zip(lats, lons, frps, acq_times):
@@ -218,15 +218,16 @@ def fetch_firms_fires(df_hourly):
     dist_km, bearing = haversine_and_bearing(
         PAU_LAT, PAU_LON, df_firms["latitude"].to_numpy(dtype=np.float64), df_firms["longitude"].to_numpy(dtype=np.float64)
     )
-    df_firms["dist_km"] = dist_km
+   df_firms["dist_km"] = dist_km
     df_firms["bearing_deg"] = bearing
-    df_firms = df_firms[df_firms["dist_km"] <= RADIUS_KM].copy()
 
     latest_date = df_firms["acq_date"].max()
     recent_fires = df_firms[
         df_firms["acq_date"] >= (pd.to_datetime(latest_date) - pd.Timedelta(days=2)).strftime("%Y-%m-%d")
     ]
     recent_fires.to_csv("data/recent_fires_map.csv", index=False)
+
+    df_firms = df_firms[df_firms["dist_km"] <= RADIUS_KM].copy()
     return df_firms
 
 
