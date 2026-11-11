@@ -167,7 +167,7 @@
       "Severe": { color: "#dc2626", en: "SEVERE SMOG EMERGENCY. Wear an N95 mask outdoors, cancel all outdoor physical training, and keep doors/windows sealed.", pa: "ਗੰਭੀਰ ਧੂੰਏਂ ਦੀ ਚੇਤਾਵਨੀ! ਬਾਹਰ ਨਿਕਲਣ ਵੇਲੇ N95 ਮਾਸਕ ਲਾਜ਼ਮੀ ਪਹਿਨੋ ਅਤੇ ਸਾਰੀਆਂ ਬਾਹਰੀ ਖੇਡਾਂ ਬੰਦ ਰੱਖੋ।" }
     };
 
-    let leafletMap = null, stationCircle = null, stationMarker = null;
+    let leafletMap = null, stationCircle = null, stationMarker = null, fireLayer = null;
     let baseLudhianaData = null, allFires = [];
 
     function getCategory(pm) {
@@ -185,12 +185,34 @@
       return { d, brng };
     }
 
+    function drawFireMarkers() {
+      if (!leafletMap || !fireLayer) return;
+      fireLayer.clearLayers();
+      allFires.forEach(r => {
+        const lat = parseFloat(r.latitude), lon = parseFloat(r.longitude);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          L.circleMarker([lat, lon], {
+            radius: 5,
+            fillColor: "#f97316",
+            color: "#fb923c",
+            weight: 1,
+            fillOpacity: 0.8
+          }).bindPopup(`<strong>Detected Crop Fire</strong><br>FRP: ${r.frp || 10} MW<br>Date: ${r.acq_date || 'Recent'}`).addTo(fireLayer);
+        }
+      });
+    }
+
     function switchTab(tabId, btnEl) {
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
       document.getElementById("tab-" + tabId).classList.add("active");
       document.querySelectorAll(".tab-btn").forEach(b => b.className = "tab-btn text-slate-400 hover:text-white rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2");
       btnEl.className = "tab-btn bg-slate-800 text-white shadow-sm rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2";
-      if (tabId === "map" && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 150);
+      if (tabId === "map" && leafletMap) {
+        setTimeout(() => {
+          leafletMap.invalidateSize();
+          drawFireMarkers();
+        }, 150);
+      }
     }
 
     function renderUI(cityKey, data) {
@@ -237,9 +259,10 @@
       });
 
       if (leafletMap) {
-        leafletMap.flyTo([c.lat, c.lon], 8, { duration: 0.8 });
+        leafletMap.setView([c.lat, c.lon], 8);
         stationCircle.setLatLng([c.lat, c.lon]);
         stationMarker.setLatLng([c.lat, c.lon]).setPopupContent(`<strong>${c.station}</strong><br>${c.name} Monitoring Point`).openPopup();
+        drawFireMarkers();
       }
     }
 
@@ -259,13 +282,14 @@
 
         let fires150 = 0, nwFires = 0, upwindFrp = 0;
         allFires.forEach(f => {
-          if (f.latitude && f.longitude) {
-            const { d, brng } = distAndBearing(c.lat, c.lon, f.latitude, f.longitude);
+          const lat = parseFloat(f.latitude), lon = parseFloat(f.longitude);
+          if (!isNaN(lat) && !isNaN(lon)) {
+            const { d, brng } = distAndBearing(c.lat, c.lon, lat, lon);
             if (d <= 150) {
               fires150++;
               if (brng >= 250 && brng <= 350) nwFires++;
               const align = Math.max(0, Math.cos((brng - windDir) * Math.PI / 180));
-              upwindFrp += ((f.frp || 12) * align) / Math.max(d, 10);
+              upwindFrp += ((parseFloat(f.frp) || 12) * align) / Math.max(d, 10);
             }
           }
         });
@@ -302,25 +326,21 @@
       document.getElementById("m-xgb-acc").textContent = `${m.xgb_aqi_acc_pct}% match`;
       document.getElementById("m-gain-banner").innerHTML = `✅ <strong>Proven Improvement:</strong> Combining satellite fire detections with wind vectors cuts prediction error by <strong>${m.mae_improvement_pct}%</strong> over persistence.`;
 
-      leafletMap = L.map("map").setView([30.9009, 75.8078], 8);
+      leafletMap = L.map("map", { preferCanvas: true }).setView([30.9009, 75.8078], 8);
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap" }).addTo(leafletMap);
       stationCircle = L.circle([30.9009, 75.8078], { radius: 150000, color: "#38bdf8", weight: 1, fillOpacity: 0.03 }).addTo(leafletMap);
+      fireLayer = L.layerGroup().addTo(leafletMap);
       stationMarker = L.circleMarker([30.9009, 75.8078], { radius: 8, fillColor: "#0ea5e9", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(leafletMap).bindPopup("<strong>PAU Ludhiana CPCB Station</strong>");
 
-      renderUI("ludhiana", baseLudhianaData);
-
       Papa.parse("./data/recent_fires_map.csv?t=" + Date.now(), {
-        download: true, header: true, dynamicTyping: true,
+        download: true, header: true, skipEmptyLines: true,
         complete: function(res) {
-          allFires = res.data;
-          res.data.forEach(r => {
-            if (r.latitude && r.longitude) {
-              L.circleMarker([r.latitude, r.longitude], { radius: 4.5, fillColor: "#f97316", color: "#fb923c", weight: 1, fillOpacity: 0.75 })
-                .addTo(leafletMap).bindPopup(`<strong>Detected Crop Fire</strong><br>FRP: ${r.frp} MW<br>Date: ${r.acq_date}`);
-            }
-          });
+          allFires = res.data || [];
+          drawFireMarkers();
         }
       });
+
+      renderUI("ludhiana", baseLudhianaData);
 
       Papa.parse("./artifacts/time_lag_curve.csv?t=" + Date.now(), {
         download: true, header: true, dynamicTyping: true,
