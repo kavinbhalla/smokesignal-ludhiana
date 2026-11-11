@@ -185,19 +185,32 @@
       return { d, brng };
     }
 
-    function drawFireMarkers() {
+let activeCityKey = "ludhiana";
+
+    function drawFireMarkers(cityKey = activeCityKey) {
       if (!leafletMap || !fireLayer) return;
+      activeCityKey = cityKey;
+      const c = CITIES[activeCityKey];
       fireLayer.clearLayers();
+
       allFires.forEach(r => {
         const lat = parseFloat(r.latitude), lon = parseFloat(r.longitude);
         if (!isNaN(lat) && !isNaN(lon)) {
-          L.circleMarker([lat, lon], {
-            radius: 5,
-            fillColor: "#f97316",
-            color: "#fb923c",
-            weight: 1,
-            fillOpacity: 0.8
-          }).bindPopup(`<strong>Detected Crop Fire</strong><br>FRP: ${r.frp || 10} MW<br>Date: ${r.acq_date || 'Recent'}`).addTo(fireLayer);
+          const { d, brng } = distAndBearing(c.lat, c.lon, lat, lon);
+          if (d <= 150) {
+            const isUpwindNW = brng >= 250 && brng <= 350;
+            L.circleMarker([lat, lon], {
+              radius: isUpwindNW ? 5.5 : 4.5,
+              fillColor: isUpwindNW ? "#ef4444" : "#f97316",
+              color: isUpwindNW ? "#fca5a5" : "#fb923c",
+              weight: 1,
+              fillOpacity: isUpwindNW ? 0.9 : 0.75
+            }).bindPopup(
+              `<strong>${isUpwindNW ? '⚠️ Upwind NW Crop Fire' : 'Detected Crop Fire'}</strong><br>` +
+              `Distance from ${c.name}: <strong>${d.toFixed(1)} km</strong><br>` +
+              `FRP: ${r.frp || 10} MW<br>Date: ${r.acq_date || 'Recent'}`
+            ).addTo(fireLayer);
+          }
         }
       });
     }
@@ -262,7 +275,7 @@
         leafletMap.setView([c.lat, c.lon], 8);
         stationCircle.setLatLng([c.lat, c.lon]);
         stationMarker.setLatLng([c.lat, c.lon]).setPopupContent(`<strong>${c.station}</strong><br>${c.name} Monitoring Point`).openPopup();
-        drawFireMarkers();
+        drawFireMarkers(cityKey);
       }
     }
 
