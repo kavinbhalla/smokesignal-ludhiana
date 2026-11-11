@@ -147,33 +147,55 @@ def fetch_pm25_data(df_weather):
 
 def fetch_firms_fires(df_hourly):
     print("[3/4] Processing NASA FIRMS satellite fire points within 150 km of Ludhiana...")
-    np.random.seed(42)
-    dates = pd.date_range(df_hourly["datetime"].min().date(), df_hourly["datetime"].max().date(), freq="D")
-    records = []
-    for d in dates:
-        if d.month in [10, 11]:
-            day_of_season = (d - pd.Timestamp(year=d.year, month=10, day=1)).days
-            intensity = np.exp(-0.5 * ((day_of_season - 32) / 11.0) ** 2)
-            n_fires = np.random.poisson(lam=int(180 * intensity) + 3)
-        elif d.month in [4, 5]:
-            n_fires = np.random.poisson(lam=18)
-        else:
-            n_fires = np.random.poisson(lam=1)
+    hist_path = "data/firms_historical.csv"
 
-        if n_fires > 0:
-            lats = PAU_LAT + np.random.normal(loc=-0.15, scale=0.55, size=n_fires)
-            lons = PAU_LON + np.random.normal(loc=-0.25, scale=0.60, size=n_fires)
-            frps = np.random.gamma(shape=2.2, scale=12.0, size=n_fires)
-            acq_times = np.random.choice(["0830", "1330", "1415", "2045"], size=n_fires)
-            for la, lo, frp, at in zip(lats, lons, frps, acq_times):
-                records.append({
-                    "latitude": la,
-                    "longitude": lo,
-                    "acq_date": d.strftime("%Y-%m-%d"),
-                    "acq_time": at,
-                    "frp": round(float(frp), 2),
-                })
-    df_firms = pd.DataFrame(records)
+    if os.path.exists(hist_path):
+        print("  Loading official historical archive `data/firms_historical.csv`...")
+        df_firms = pd.read_csv(hist_path)
+    else:
+        np.random.seed(42)
+        dates = pd.date_range(df_hourly["datetime"].min().date(), df_hourly["datetime"].max().date(), freq="D")
+        records = []
+        for d in dates:
+            if d.month in [10, 11]:
+                day_of_season = (d - pd.Timestamp(year=d.year, month=10, day=1)).days
+                intensity = np.exp(-0.5 * ((day_of_season - 32) / 11.0) ** 2)
+                n_fires = np.random.poisson(lam=int(180 * intensity) + 3)
+            elif d.month in [4, 5]:
+                n_fires = np.random.poisson(lam=18)
+            else:
+                n_fires = np.random.poisson(lam=1)
+
+            if n_fires > 0:
+                lats = PAU_LAT + np.random.normal(loc=-0.15, scale=0.55, size=n_fires)
+                lons = PAU_LON + np.random.normal(loc=-0.25, scale=0.60, size=n_fires)
+                frps = np.random.gamma(shape=2.2, scale=12.0, size=n_fires)
+                acq_times = np.random.choice(["0830", "1330", "1415", "2045"], size=n_fires)
+                for la, lo, frp, at in zip(lats, lons, frps, acq_times):
+                    records.append({
+                        "latitude": la,
+                        "longitude": lo,
+                        "acq_date": d.strftime("%Y-%m-%d"),
+                        "acq_time": at,
+                        "frp": round(float(frp), 2),
+                    })
+        df_firms = pd.DataFrame(records)
+
+    map_key = os.environ.get("NASA_FIRMS_MAP_KEY", "").strip()
+    if map_key:
+        print("  Fetching live past-5-days VIIRS_SNPP_NRT fires from NASA FIRMS API...")
+        nrt_url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{map_key}/VIIRS_SNPP_NRT/{BBOX}/5"
+        try:
+            r = requests.get(nrt_url, timeout=30)
+            if r.status_code == 200 and "latitude" in r.text:
+                from io import StringIO
+                df_live = pd.read_csv(StringIO(r.text))
+                live_dates = df_live["acq_date"].unique()
+                df_firms = df_firms[~df_firms["acq_date"].isin(live_dates)]
+                df_firms = pd.concat([df_firms, df_live], ignore_index=True)
+                print(f"  Added {len(df_live)} live NASA VIIRS fire detections!")
+        except Exception as e:
+            print(f"  Warning fetching live FIRMS: {e}")
 
     dist_km, bearing = haversine_and_bearing(
         PAU_LAT, PAU_LON, df_firms["latitude"].values, df_firms["longitude"].values
