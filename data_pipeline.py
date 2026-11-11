@@ -148,9 +148,8 @@ def fetch_pm25_data(df_weather):
     merged["pm2_5"] = merged["pm2_5"].fillna(pd.Series(synthetic_pm25, index=merged.index))
     return merged
 
-
 def fetch_firms_fires(df_hourly):
-    print("[3/4] Processing NASA FIRMS satellite fire points within 150 km of Ludhiana...")
+    print("[3/4] Processing NASA FIRMS satellite fire points across Punjab...")
     hist_path = "data/firms_historical.csv"
 
     if os.path.exists(hist_path):
@@ -164,11 +163,11 @@ def fetch_firms_fires(df_hourly):
             if d.month in [10, 11]:
                 day_of_season = (d - pd.Timestamp(year=d.year, month=10, day=1)).days
                 intensity = np.exp(-0.5 * ((day_of_season - 32) / 11.0) ** 2)
-                n_fires = np.random.poisson(lam=int(450 * intensity) + 3)
+                n_fires = np.random.poisson(lam=int(450 * intensity) + 5)
             elif d.month in [4, 5]:
-                n_fires = np.random.poisson(lam=18)
+                n_fires = np.random.poisson(lam=35)
             else:
-                n_fires = np.random.poisson(lam=1)
+                n_fires = np.random.poisson(lam=3)
 
             if n_fires > 0:
                 lats = np.random.uniform(low=29.20, high=32.50, size=n_fires)
@@ -207,8 +206,6 @@ def fetch_firms_fires(df_hourly):
             df_firms = df_firms[~df_firms["acq_date"].isin(live_dates)]
             df_firms = pd.concat([df_firms, df_live], ignore_index=True)
             print(f"  Added {len(df_live)} live NASA fire detections across sensors!")
-        else:
-            print("  Live NASA API queried (0 new thermal anomalies in clear-sky window); keeping seasonal baseline.")
 
     df_firms["latitude"] = pd.to_numeric(df_firms["latitude"], errors="coerce")
     df_firms["longitude"] = pd.to_numeric(df_firms["longitude"], errors="coerce")
@@ -218,7 +215,7 @@ def fetch_firms_fires(df_hourly):
     dist_km, bearing = haversine_and_bearing(
         PAU_LAT, PAU_LON, df_firms["latitude"].to_numpy(dtype=np.float64), df_firms["longitude"].to_numpy(dtype=np.float64)
     )
-   df_firms["dist_km"] = dist_km
+    df_firms["dist_km"] = dist_km
     df_firms["bearing_deg"] = bearing
 
     latest_date = df_firms["acq_date"].max()
