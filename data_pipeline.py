@@ -163,7 +163,7 @@ def fetch_firms_fires(df_hourly):
             if d.month in [10, 11]:
                 day_of_season = (d - pd.Timestamp(year=d.year, month=10, day=1)).days
                 intensity = np.exp(-0.5 * ((day_of_season - 32) / 11.0) ** 2)
-                n_fires = np.random.poisson(lam=int(450 * intensity) + 5)
+                n_fires = np.random.poisson(lam=int(180 * intensity) + 5)
             elif d.month in [4, 5]:
                 n_fires = np.random.poisson(lam=35)
             else:
