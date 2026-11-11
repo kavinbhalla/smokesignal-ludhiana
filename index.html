@@ -225,9 +225,10 @@
 
       // 2. Initialize Leaflet Map
       const map = L.map("map").setView([30.9009, 75.8078], 8);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        attribution: "&copy; OpenStreetMap &copy; CARTO"
-      }).addTo(map);
+     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+     attribution: "&copy; OpenStreetMap contributors"
+   }).addTo(map);
+   document.querySelector(".leaflet-tile-pane").style.filter = "invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)";
 
       // 150 km radius ring around PAU Ludhiana
       L.circle([30.9009, 75.8078], {
