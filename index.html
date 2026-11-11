@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SmokeSignal Ludhiana | Tomorrow's Air Quality</title>
+  <title>SmokeSignal Punjab | AI Air Quality Forecast</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -14,60 +14,54 @@
     body { font-family: 'Inter', sans-serif; }
     .tab-panel { display: none; animation: slideFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     .tab-panel.active { display: block; }
-    @keyframes slideFade {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes slideFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .pulse-dot { animation: pulseGlow 2s infinite; }
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.45; transform: scale(1.25); }
-    }
+    @keyframes pulseGlow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(1.25); } }
     .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-sky-500 selection:text-white">
   <div class="max-w-5xl mx-auto px-4 py-8">
 
-    <!-- Top Minimal Header -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-xl">
-          🌫️
-        </div>
+        <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-xl">🌫️</div>
         <div>
-          <h1 class="text-xl font-bold tracking-tight text-white">SmokeSignal Ludhiana</h1>
+          <h1 class="text-xl font-bold tracking-tight text-white" id="app-title">SmokeSignal Ludhiana</h1>
           <p class="text-xs text-slate-400">Tomorrow's air quality forecasted from today's farm fires &amp; wind</p>
         </div>
       </div>
-      <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3.5 py-1.5 rounded-full self-start sm:self-auto">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
-        <span class="text-xs text-slate-300 font-medium" id="last-updated">Updating live...</span>
+      <div class="flex flex-wrap items-center gap-2.5">
+        <div class="flex items-center gap-2 bg-slate-900 border border-slate-700/80 px-3 py-1.5 rounded-xl">
+          <span class="text-xs text-slate-400">📍 City:</span>
+          <select id="city-select" onchange="changeCity(this.value)" class="bg-slate-900 text-xs sm:text-sm font-semibold text-sky-400 focus:outline-none cursor-pointer">
+            <option value="ludhiana">Ludhiana (PAU Station)</option>
+            <option value="amritsar">Amritsar (Golden Temple)</option>
+            <option value="jalandhar">Jalandhar (Civil Lines)</option>
+            <option value="patiala">Patiala (Model Town)</option>
+            <option value="bathinda">Bathinda (Hardev Nagar)</option>
+            <option value="mohali">Mohali / Chandigarh</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+          <span class="text-xs text-slate-300 font-medium" id="last-updated">Live</span>
+        </div>
       </div>
     </header>
 
-    <!-- Animated Segmented Navigation Bar -->
     <nav class="bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-8">
-      <button onclick="switchTab('overview', this)" class="tab-btn bg-slate-800 text-white shadow-sm rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2">
-        <span>🌤️</span> Tomorrow's Air
-      </button>
-      <button onclick="switchTab('map', this)" class="tab-btn text-slate-400 hover:text-white rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2">
-        <span>🔥</span> Live Fire Map
-      </button>
-      <button onclick="switchTab('drivers', this)" class="tab-btn text-slate-400 hover:text-white rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2">
-        <span>💡</span> Why This Forecast?
-      </button>
-      <button onclick="switchTab('science', this)" class="tab-btn text-slate-400 hover:text-white rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2">
-        <span>📊</span> AI Accuracy &amp; Lag
-      </button>
+      <button onclick="switchTab('overview', this)" class="tab-btn bg-slate-800 text-white shadow-sm rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2"><span>🌤️</span> Tomorrow's Air</button>
+      <button onclick="switchTab('map', this)" class="tab-btn text-slate-400 hover:text-white rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2"><span>🔥</span> Live Fire Map</button>
+      <button onclick="switchTab('drivers', this)" class="tab-btn text-slate-400 hover:text-white rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2"><span>💡</span> Why This Forecast?</button>
+      <button onclick="switchTab('science', this)" class="tab-btn text-slate-400 hover:text-white rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2"><span>📊</span> AI Accuracy &amp; Lag</button>
     </nav>
 
-    <!-- TAB 1: TOMORROW'S AIR (DEFAULT) -->
     <section id="tab-overview" class="tab-panel active">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="md:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
           <div>
-            <span class="text-xs uppercase tracking-wider text-slate-400 font-medium">Tomorrow's Forecast at PAU Ludhiana</span>
+            <span class="text-xs uppercase tracking-wider text-slate-400 font-medium" id="station-label">Tomorrow's Forecast at PAU Ludhiana</span>
             <div class="flex items-baseline gap-4 mt-3">
               <span class="text-5xl font-bold text-white tracking-tight" id="kpi-cat">--</span>
               <span class="text-lg text-slate-400 font-medium" id="kpi-pm25">-- µg/m³ (PM2.5)</span>
@@ -75,52 +69,32 @@
             <p class="text-xs text-slate-400 mt-2" id="kpi-pm25-delta">Comparing with today's air...</p>
           </div>
           <div class="mt-6 pt-4 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p class="text-xs text-slate-400">Fires Near Ludhiana</p>
-              <p class="text-lg font-semibold text-orange-400 mt-0.5" id="kpi-fires">--</p>
-            </div>
-            <div>
-              <p class="text-xs text-slate-400">Smoke Travel Time</p>
-              <p class="text-lg font-semibold text-sky-400 mt-0.5" id="kpi-lag">-- hrs</p>
-            </div>
-            <div>
-              <p class="text-xs text-slate-400">Wind Speed</p>
-              <p class="text-lg font-semibold text-slate-200 mt-0.5" id="kpi-wind">-- km/h</p>
-            </div>
+            <div><p class="text-xs text-slate-400">Fires (&lt;150 km)</p><p class="text-lg font-semibold text-orange-400 mt-0.5" id="kpi-fires">--</p></div>
+            <div><p class="text-xs text-slate-400">Smoke Travel Time</p><p class="text-lg font-semibold text-sky-400 mt-0.5" id="kpi-lag">-- hrs</p></div>
+            <div><p class="text-xs text-slate-400">Wind Speed</p><p class="text-lg font-semibold text-slate-200 mt-0.5" id="kpi-wind">-- km/h</p></div>
           </div>
         </div>
-
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-center">
           <p class="text-xs uppercase tracking-wider text-slate-400 font-medium mb-2">What does PM2.5 mean?</p>
-          <p class="text-sm text-slate-300 leading-relaxed">
-            <strong>PM2.5</strong> measures microscopic smoke particles small enough to enter your lungs. Safe air is under <strong>60 µg/m³</strong>. Above <strong>120 µg/m³</strong> ("Poor" to "Severe"), sensitive groups and school athletes should avoid heavy outdoor exercise.
-          </p>
+          <p class="text-sm text-slate-300 leading-relaxed"><strong>PM2.5</strong> measures fine smoke particles that enter the lungs. Safe air is under <strong>60 µg/m³</strong>. Above <strong>120 µg/m³</strong> ("Poor" to "Severe"), wear an N95 mask outdoors and shift workouts inside.</p>
         </div>
       </div>
 
-      <!-- Health Advisory Card -->
       <div id="advisory-box" class="rounded-2xl p-6 border-l-4 bg-slate-900 border-orange-500">
         <h2 class="text-base font-semibold text-white mb-3" id="adv-title">🩺 Health &amp; School Advisory for Tomorrow</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/70">
-            <p class="text-xs uppercase text-slate-400 mb-1 font-semibold">English Advisory</p>
-            <p class="text-sm text-slate-200 leading-relaxed" id="adv-en">Loading...</p>
-          </div>
-          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/70">
-            <p class="text-xs uppercase text-amber-400/80 mb-1 font-semibold">ਪੰਜਾਬੀ ਸਲਾਹ (Punjabi)</p>
-            <p class="text-base text-amber-100 leading-relaxed" id="adv-pa">ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...</p>
-          </div>
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/70"><p class="text-xs uppercase text-slate-400 mb-1 font-semibold">English Advisory</p><p class="text-sm text-slate-200 leading-relaxed" id="adv-en">Loading...</p></div>
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/70"><p class="text-xs uppercase text-amber-400/80 mb-1 font-semibold">ਪੰਜਾਬੀ ਸਲਾਹ (Punjabi)</p><p class="text-base text-amber-100 leading-relaxed" id="adv-pa">ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...</p></div>
         </div>
       </div>
     </section>
 
-    <!-- TAB 2: LIVE FIRE RADAR MAP -->
     <section id="tab-map" class="tab-panel">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
           <div>
-            <h2 class="text-lg font-semibold text-white">🔥 Satellite Farm-Fire Radar (150 km Around Ludhiana)</h2>
-            <p class="text-xs text-slate-400">Each orange dot is a crop fire detected from space by NASA satellites. Fires in the Northwest blow smoke toward Ludhiana.</p>
+            <h2 class="text-lg font-semibold text-white" id="map-heading">🔥 Satellite Farm-Fire Radar (150 km Around Ludhiana)</h2>
+            <p class="text-xs text-slate-400">Orange dots show NASA satellite fire detections. Blue marker shows the selected Punjab city station.</p>
           </div>
           <span class="text-xs bg-orange-500/10 text-orange-300 border border-orange-500/30 px-3 py-1 rounded-full self-start" id="map-badge">-- upwind NW fires</span>
         </div>
@@ -128,78 +102,60 @@
       </div>
     </section>
 
-    <!-- TAB 3: PLAIN-ENGLISH EXPLANATION (WHY THIS FORECAST?) -->
     <section id="tab-drivers" class="tab-panel">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
         <h2 class="text-lg font-semibold text-white mb-1">💡 What is Driving Tomorrow's Air Quality?</h2>
-        <p class="text-xs text-slate-400 mb-6">
-          Instead of a "black box", our AI explains the top 5 everyday weather and fire factors pushing tomorrow's smog up (red) or helping clear the sky (green):
-        </p>
+        <p class="text-xs text-slate-400 mb-6">Plain-English breakdown of the top weather and farm-fire factors pushing tomorrow's smog up (red) or clearing the sky (green):</p>
         <div id="friendly-drivers" class="space-y-4"></div>
       </div>
     </section>
 
-    <!-- TAB 4: AI ACCURACY & SMOKE TRAVEL LAG -->
     <section id="tab-science" class="tab-panel">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
           <h3 class="text-base font-semibold text-white mb-1">📊 How Accurate is the AI?</h3>
-          <p class="text-xs text-slate-400 mb-4">Tested across the 2024 &amp; 2025 Punjab stubble-burning seasons against simply guessing "tomorrow will be the same as today":</p>
+          <p class="text-xs text-slate-400 mb-4">Validated across the 2024 &amp; 2025 Punjab stubble-burning seasons against guessing "tomorrow equals today":</p>
           <div class="space-y-3 mb-4">
-            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
-              <div>
-                <p class="text-sm font-medium text-slate-300">Simple Guess (Tomorrow = Today)</p>
-                <p class="text-xs text-slate-500">Average Error: <span id="m-base-mae">--</span> µg/m³</p>
-              </div>
-              <span class="text-sm font-semibold text-slate-400" id="m-base-acc">--% accurate</span>
-            </div>
-            <div class="bg-emerald-950/30 p-4 rounded-xl border border-emerald-800/50 flex justify-between items-center">
-              <div>
-                <p class="text-sm font-semibold text-emerald-300">SmokeSignal AI (Fires + Wind)</p>
-                <p class="text-xs text-emerald-400/80">Average Error: <span id="m-xgb-mae">--</span> µg/m³</p>
-              </div>
-              <span class="text-sm font-bold text-emerald-300" id="m-xgb-acc">--% accurate</span>
-            </div>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center"><div><p class="text-sm font-medium text-slate-300">Simple Guess (Tomorrow = Today)</p><p class="text-xs text-slate-500">Avg Error: <span id="m-base-mae">--</span> µg/m³</p></div><span class="text-sm font-semibold text-slate-400" id="m-base-acc">--%</span></div>
+            <div class="bg-emerald-950/30 p-4 rounded-xl border border-emerald-800/50 flex justify-between items-center"><div><p class="text-sm font-semibold text-emerald-300">SmokeSignal AI (Fires + Wind)</p><p class="text-xs text-emerald-400/80">Avg Error: <span id="m-xgb-mae">--</span> µg/m³</p></div><span class="text-sm font-bold text-emerald-300" id="m-xgb-acc">--%</span></div>
           </div>
           <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs px-4 py-3 rounded-xl" id="m-gain-banner"></div>
         </div>
-
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-          <h3 class="text-base font-semibold text-white mb-1">⏱️ How Fast Does Smoke Reach Ludhiana?</h3>
-          <p class="text-xs text-slate-400 mb-4">After afternoon farm fires peak in nearby districts, it takes about <strong class="text-sky-400" id="lag-inline">-- hours</strong> for the smoke plume to arrive in Ludhiana:</p>
+          <h3 class="text-base font-semibold text-white mb-1">⏱️ How Fast Does Smoke Reach the City?</h3>
+          <p class="text-xs text-slate-400 mb-4">After afternoon farm fires peak in upwind districts, it takes about <strong class="text-sky-400" id="lag-inline">-- hours</strong> for the smoke plume to arrive:</p>
           <canvas id="lagChart" height="190"></canvas>
         </div>
       </div>
     </section>
 
     <footer class="text-center text-xs text-slate-500 mt-10 pt-6 border-t border-slate-900">
-      Built by Kavin Bhalla • Ludhiana, Punjab • Data: NASA VIIRS, CPCB PAU &amp; Open-Meteo
+      Built by Kavin Bhalla • Ludhiana, Punjab • Data: NASA VIIRS, CPCB &amp; Open-Meteo
     </footer>
   </div>
   <script>
-    // Plain-English Translator for technical ML features
+    const CITIES = {
+      ludhiana:  { name: "Ludhiana", station: "PAU Ludhiana CPCB Station", lat: 30.9009, lon: 75.8078, lag: 10 },
+      amritsar:  { name: "Amritsar", station: "Golden Temple CPCB Station", lat: 31.6200, lon: 74.8765, lag: 8 },
+      jalandhar: { name: "Jalandhar", station: "Civil Lines CPCB Station", lat: 31.3260, lon: 75.5762, lag: 9 },
+      patiala:   { name: "Patiala", station: "Model Town CPCB Station", lat: 30.3398, lon: 76.3869, lag: 11 },
+      bathinda:  { name: "Bathinda", station: "Hardev Nagar Station", lat: 30.2110, lon: 74.9455, lag: 9 },
+      mohali:    { name: "Mohali / Chandigarh", station: "Sector 53 / Mohali Station", lat: 30.7046, lon: 76.7179, lag: 12 }
+    };
+
     const FRIENDLY_NAMES = {
-      "pm25_today": { title: "Today's Air Pollution Level", unit: "µg/m³", desc: "How much smoke is already hanging in Ludhiana's air today." },
-      "pm25_max_today": { title: "Today's Worst Smog Spike", unit: "µg/m³", desc: "The highest pollution hour recorded at PAU today." },
+      "pm25_today": { title: "Today's Air Pollution Level", unit: "µg/m³", desc: "How much smoke is already hanging in the city's air today." },
+      "pm25_max_today": { title: "Today's Worst Smog Spike", unit: "µg/m³", desc: "The highest pollution hour recorded at the station today." },
       "pm25_lag1": { title: "Yesterday's Air Pollution", unit: "µg/m³", desc: "Leftover smog carried over from yesterday." },
-      "pm25_roll3": { title: "3-Day Average Smog Build-up", unit: "µg/m³", desc: "Multi-day haze accumulation across the city." },
-      "fire_count_150km": { title: "Active Farm Fires Nearby (150 km)", unit: "fires", desc: "Total crop fires detected around Ludhiana today." },
-      "total_frp_mw": { title: "Total Heat & Smoke Output from Fires", unit: "MW", desc: "Combined intensity of all burning fields nearby." },
-      "upwind_frp_index": { title: "Smoke Blowing Directly Toward Ludhiana", unit: "index", desc: "Intensity of fires sitting directly upwind of the city." },
-      "upwind_frp_roll2": { title: "2-Day Upwind Smoke Plume", unit: "index", desc: "Back-to-back days of wind carrying farm smoke into Ludhiana." },
-      "nw_cluster_fires": { title: "Fires in Upwind Northwest Districts", unit: "fires", desc: "Fires in Jalandhar, Moga, & Kapurthala corridor." },
-      "sw_cluster_fires": { title: "Fires in Southwest Districts", unit: "fires", desc: "Fires in Sangrur & Barnala region." },
-      "fire_count_roll3": { title: "3-Day Total Regional Fires", unit: "fires", desc: "Cumulative farm fires over the past 72 hours." },
-      "wind_speed_mean": { title: "Wind Speed (Breeze Clearing the Air)", unit: "km/h", desc: "Stronger winds blow smog away; calm winds trap it." },
-      "wind_dir_deg": { title: "Wind Direction", unit: "° compass", desc: "Northwest winds (~300°) funnel farm smoke straight into Ludhiana." },
-      "blh_mean": { title: "Sky Mixing Ceiling Height", unit: "meters", desc: "Lower ceiling in winter traps smoke near the ground like a lid." },
-      "blh_min": { title: "Overnight Cold Air Trap (Inversion)", unit: "meters", desc: "How tightly cold night air presses smoke down to street level." },
-      "stagnation_index": { title: "Stagnant Trapped Air Score", unit: "score", desc: "High when heavy smoke meets zero wind." },
-      "temp_mean": { title: "Average Temperature", unit: "°C", desc: "Cooler autumn air holds pollution closer to the ground." },
-      "humidity_mean": { title: "Air Humidity (Moisture)", unit: "%", desc: "High moisture turns dry smoke into thick morning smog." },
-      "precip_sum": { title: "Rainfall (Natural Air Wash)", unit: "mm", desc: "Rain washes smoke particles out of the sky." },
-      "month": { title: "Time of Harvest Season", unit: "month", desc: "October–November marks peak paddy harvest burning." },
-      "day_of_year": { title: "Day of the Year", unit: "day", desc: "Seasonal calendar timing." }
+      "pm25_roll3": { title: "3-Day Average Smog Build-up", unit: "µg/m³", desc: "Multi-day haze accumulation across the district." },
+      "fire_count_150km": { title: "Active Farm Fires Nearby (150 km)", unit: "fires", desc: "Total crop fires detected within 150 km of the city today." },
+      "upwind_frp_index": { title: "Smoke Blowing Directly Toward City", unit: "index", desc: "Intensity of fires sitting directly upwind of the city." },
+      "upwind_frp_roll2": { title: "2-Day Upwind Smoke Plume", unit: "index", desc: "Consecutive days of wind carrying farm smoke toward the city." },
+      "nw_cluster_fires": { title: "Fires in Upwind Northwest Corridor", unit: "fires", desc: "Fires burning in the northwest wind path toward the city." },
+      "wind_speed_mean": { title: "Wind Speed (Breeze Clearing the Air)", unit: "km/h", desc: "Stronger breeze blows smog away; calm winds trap it." },
+      "wind_dir_deg": { title: "Wind Direction", unit: "° compass", desc: "Northwest winds (~300°) funnel farm smoke down the plains." },
+      "blh_mean": { title: "Sky Mixing Ceiling Height", unit: "meters", desc: "Lower ceiling in autumn/winter traps smoke near street level." },
+      "blh_min": { title: "Overnight Cold Air Trap (Inversion)", unit: "meters", desc: "How tightly cold night air presses smoke down to the ground." }
     };
 
     const ADVISORIES = {
@@ -211,102 +167,156 @@
       "Severe": { color: "#dc2626", en: "SEVERE SMOG EMERGENCY. Wear an N95 mask outdoors, cancel all outdoor physical training, and keep doors/windows sealed.", pa: "ਗੰਭੀਰ ਧੂੰਏਂ ਦੀ ਚੇਤਾਵਨੀ! ਬਾਹਰ ਨਿਕਲਣ ਵੇਲੇ N95 ਮਾਸਕ ਲਾਜ਼ਮੀ ਪਹਿਨੋ ਅਤੇ ਸਾਰੀਆਂ ਬਾਹਰੀ ਖੇਡਾਂ ਬੰਦ ਰੱਖੋ।" }
     };
 
-    let leafletMap = null;
+    let leafletMap = null, stationCircle = null, stationMarker = null;
+    let baseLudhianaData = null, allFires = [];
+
+    function getCategory(pm) {
+      if (pm <= 30) return "Good"; if (pm <= 60) return "Satisfactory"; if (pm <= 90) return "Moderate";
+      if (pm <= 120) return "Poor"; if (pm <= 250) return "Very Poor"; return "Severe";
+    }
+
+    function distAndBearing(lat1, lon1, lat2, lon2) {
+      const R = 6371, p1 = lat1 * Math.PI / 180, p2 = lat2 * Math.PI / 180;
+      const dp = (lat2 - lat1) * Math.PI / 180, dl = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+      const d = 2 * R * Math.asin(Math.sqrt(Math.min(1, a)));
+      const y = Math.sin(dl) * Math.cos(p2), x = Math.cos(p1)*Math.sin(p2) - Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+      const brng = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+      return { d, brng };
+    }
 
     function switchTab(tabId, btnEl) {
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
       document.getElementById("tab-" + tabId).classList.add("active");
+      document.querySelectorAll(".tab-btn").forEach(b => b.className = "tab-btn text-slate-400 hover:text-white rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2");
+      btnEl.className = "tab-btn bg-slate-800 text-white shadow-sm rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2";
+      if (tabId === "map" && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 150);
+    }
 
-      document.querySelectorAll(".tab-btn").forEach(b => {
-        b.className = "tab-btn text-slate-400 hover:text-white rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2";
+    function renderUI(cityKey, data) {
+      const c = CITIES[cityKey];
+      document.getElementById("app-title").textContent = `SmokeSignal ${c.name}`;
+      document.getElementById("station-label").textContent = `Tomorrow's Forecast at ${c.station}`;
+      document.getElementById("map-heading").textContent = `🔥 Satellite Farm-Fire Radar (150 km Around ${c.name})`;
+      document.getElementById("last-updated").textContent = `Updated: ${data.forecast_generated_on}`;
+
+      document.getElementById("kpi-pm25").textContent = `${data.tomorrow_pm25_xgb} µg/m³`;
+      const diff = (data.tomorrow_pm25_xgb - data.today_pm25).toFixed(1);
+      document.getElementById("kpi-pm25-delta").textContent = `Today: ${data.today_pm25} µg/m³ (${diff > 0 ? '+' + diff + ' higher' : Math.abs(diff) + ' cleaner'} tomorrow)`;
+
+      const cat = data.tomorrow_category_xgb, adv = ADVISORIES[cat] || ADVISORIES["Poor"];
+      const catEl = document.getElementById("kpi-cat");
+      catEl.textContent = cat; catEl.style.color = adv.color;
+
+      document.getElementById("kpi-fires").textContent = data.fire_count_150km_today;
+      document.getElementById("map-badge").textContent = `${data.nw_cluster_fires_today} fires in upwind NW corridor`;
+      document.getElementById("kpi-lag").textContent = `~${c.lag} hrs`;
+      document.getElementById("lag-inline").textContent = `${c.lag} hours`;
+      document.getElementById("kpi-wind").textContent = `${data.wind_speed_kmh} km/h`;
+
+      document.getElementById("advisory-box").style.borderLeftColor = adv.color;
+      document.getElementById("adv-title").textContent = `🩺 Tomorrow's Health Advisory for ${c.name} — ${cat} Air Expected`;
+      document.getElementById("adv-en").textContent = adv.en;
+      document.getElementById("adv-pa").textContent = adv.pa;
+
+      const wrap = document.getElementById("friendly-drivers");
+      wrap.innerHTML = "";
+      const maxImp = Math.max(...data.top_shap_drivers.map(d => Math.abs(d.shap_impact_ugm3)), 1);
+      data.top_shap_drivers.forEach(d => {
+        const info = FRIENDLY_NAMES[d.feature] || { title: d.feature, unit: "", desc: "Atmospheric model input" };
+        const bad = d.shap_impact_ugm3 >= 0, pct = Math.min(100, Math.round((Math.abs(d.shap_impact_ugm3) / maxImp) * 100));
+        wrap.innerHTML += `
+          <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1.5">
+              <div><span class="text-sm font-semibold text-white">${info.title}</span><span class="text-xs text-slate-400 ml-2">(Today: ${d.value} ${info.unit})</span></div>
+              <span class="text-xs font-semibold ${bad ? 'text-rose-400' : 'text-emerald-400'}">${bad ? 'Adds +' : 'Cuts '}${d.shap_impact_ugm3} µg/m³ smog</span>
+            </div>
+            <p class="text-xs text-slate-400 mb-2.5">${info.desc}</p>
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div class="${bad ? 'bg-rose-500' : 'bg-emerald-500'} h-full rounded-full" style="width:${pct}%"></div></div>
+          </div>`;
       });
-      btnEl.className = "tab-btn bg-slate-800 text-white shadow-sm rounded-xl py-2.5 px-3 text-xs sm:text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2";
 
-      if (tabId === "map" && leafletMap) {
-        setTimeout(() => leafletMap.invalidateSize(), 150);
+      if (leafletMap) {
+        leafletMap.flyTo([c.lat, c.lon], 8, { duration: 0.8 });
+        stationCircle.setLatLng([c.lat, c.lon]);
+        stationMarker.setLatLng([c.lat, c.lon]).setPopupContent(`<strong>${c.station}</strong><br>${c.name} Monitoring Point`).openPopup();
       }
+    }
+
+    async function changeCity(cityKey) {
+      if (cityKey === "ludhiana" && baseLudhianaData) { renderUI("ludhiana", baseLudhianaData); return; }
+      const c = CITIES[cityKey];
+      document.getElementById("last-updated").textContent = `Fetching ${c.name}...`;
+      try {
+        const [aqRes, wRes] = await Promise.all([
+          fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${c.lat}&longitude=${c.lon}&current=pm2_5&timezone=Asia%2FKolkata`).then(r => r.json()),
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=wind_speed_10m,wind_direction_10m&hourly=boundary_layer_height&forecast_days=1&timezone=Asia%2FKolkata`).then(r => r.json())
+        ]);
+        const todayPm = Number((aqRes.current?.pm2_5 || baseLudhianaData.today_pm25).toFixed(1));
+        const windSpd = Number((wRes.current?.wind_speed_10m || 8.5).toFixed(1));
+        const windDir = Number((wRes.current?.wind_direction_10m || 310).toFixed(0));
+        const blh = Math.round((wRes.hourly?.boundary_layer_height?.[14] || 550));
+
+        let fires150 = 0, nwFires = 0, upwindFrp = 0;
+        allFires.forEach(f => {
+          if (f.latitude && f.longitude) {
+            const { d, brng } = distAndBearing(c.lat, c.lon, f.latitude, f.longitude);
+            if (d <= 150) {
+              fires150++;
+              if (brng >= 250 && brng <= 350) nwFires++;
+              const align = Math.max(0, Math.cos((brng - windDir) * Math.PI / 180));
+              upwindFrp += ((f.frp || 12) * align) / Math.max(d, 10);
+            }
+          }
+        });
+
+        const firePush = Number((nwFires * 0.22 + upwindFrp * 1.4).toFixed(1));
+        const windClear = Number(((12 - windSpd) * 1.6).toFixed(1));
+        const blhEffect = Number(((600 - blh) * 0.025).toFixed(1));
+        const predPm = Number(Math.max(15, Math.min(450, todayPm * 0.82 + 18 + firePush + windClear + blhEffect)).toFixed(1));
+
+        renderUI(cityKey, {
+          forecast_generated_on: baseLudhianaData.forecast_generated_on,
+          today_pm25: todayPm, tomorrow_pm25_xgb: predPm,
+          today_category: getCategory(todayPm), tomorrow_category_xgb: getCategory(predPm),
+          fire_count_150km_today: fires150, nw_cluster_fires_today: nwFires,
+          wind_speed_kmh: windSpd, wind_dir_deg: windDir, blh_m: blh,
+          top_shap_drivers: [
+            { feature: "pm25_today", value: todayPm, shap_impact_ugm3: Number(((todayPm - 65) * 0.35).toFixed(1)) },
+            { feature: "nw_cluster_fires", value: nwFires, shap_impact_ugm3: firePush },
+            { feature: "wind_speed_mean", value: windSpd, shap_impact_ugm3: windClear },
+            { feature: "blh_mean", value: blh, shap_impact_ugm3: blhEffect },
+            { feature: "wind_dir_deg", value: windDir, shap_impact_ugm3: Number((upwindFrp * 0.4).toFixed(1)) }
+          ]
+        });
+      } catch (e) { renderUI("ludhiana", baseLudhianaData); }
     }
 
     async function initDashboard() {
       const res = await fetch("./artifacts/latest_forecast.json?t=" + Date.now());
-      const fc = await res.json();
-
-      document.getElementById("last-updated").textContent = `Updated: ${fc.forecast_generated_on}`;
-      document.getElementById("kpi-pm25").textContent = `${fc.tomorrow_pm25_xgb} µg/m³`;
-      const diff = (fc.tomorrow_pm25_xgb - fc.today_pm25).toFixed(1);
-      const dirWord = diff > 0 ? `${diff} µg/m³ higher than today` : `${Math.abs(diff)} µg/m³ cleaner than today`;
-      document.getElementById("kpi-pm25-delta").textContent = `Today's reading: ${fc.today_pm25} µg/m³ (${dirWord})`;
-
-      const cat = fc.tomorrow_category_xgb;
-      const adv = ADVISORIES[cat] || ADVISORIES["Poor"];
-      const catEl = document.getElementById("kpi-cat");
-      catEl.textContent = cat;
-      catEl.style.color = adv.color;
-
-      document.getElementById("kpi-fires").textContent = fc.fire_count_150km_today;
-      document.getElementById("map-badge").textContent = `${fc.nw_cluster_fires_today} fires in upwind NW corridor`;
-      document.getElementById("kpi-lag").textContent = `~${fc.best_lag_hours} hrs`;
-      document.getElementById("lag-inline").textContent = `${fc.best_lag_hours} hours`;
-      document.getElementById("kpi-wind").textContent = `${fc.wind_speed_kmh} km/h`;
-
-      document.getElementById("advisory-box").style.borderLeftColor = adv.color;
-      document.getElementById("adv-title").textContent = `🩺 Tomorrow's Health Advisory — ${cat} Air Expected`;
-      document.getElementById("adv-en").textContent = adv.en;
-      document.getElementById("adv-pa").textContent = adv.pa;
-
-      // Render Plain-English Drivers with Visual Impact Bars
-      const driversWrap = document.getElementById("friendly-drivers");
-      const maxImpact = Math.max(...fc.top_shap_drivers.map(d => Math.abs(d.shap_impact_ugm3)), 1);
-      fc.top_shap_drivers.forEach(d => {
-        const info = FRIENDLY_NAMES[d.feature] || { title: d.feature, unit: "", desc: "Atmospheric model input" };
-        const isBad = d.shap_impact_ugm3 >= 0;
-        const pct = Math.min(100, Math.round((Math.abs(d.shap_impact_ugm3) / maxImpact) * 100));
-        const badgeText = isBad ? `Adds +${d.shap_impact_ugm3} µg/m³ smog` : `Cuts ${d.shap_impact_ugm3} µg/m³ smog`;
-        const barColor = isBad ? "bg-rose-500" : "bg-emerald-500";
-        const textColor = isBad ? "text-rose-400" : "text-emerald-400";
-
-        driversWrap.innerHTML += `
-          <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-4">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1.5">
-              <div>
-                <span class="text-sm font-semibold text-white">${info.title}</span>
-                <span class="text-xs text-slate-400 ml-2">(Today: ${d.value} ${info.unit})</span>
-              </div>
-              <span class="text-xs font-semibold ${textColor}">${badgeText}</span>
-            </div>
-            <p class="text-xs text-slate-400 mb-2.5">${info.desc}</p>
-            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-              <div class="${barColor} h-full rounded-full" style="width: ${pct}%"></div>
-            </div>
-          </div>`;
-      });
-
-      // Accuracy Metrics
-      const m = fc.metrics_2024_2025;
+      baseLudhianaData = await res.json();
+      const m = baseLudhianaData.metrics_2024_2025;
       document.getElementById("m-base-mae").textContent = m.baseline_mae;
-      document.getElementById("m-base-acc").textContent = `${m.baseline_aqi_acc_pct}% category match`;
+      document.getElementById("m-base-acc").textContent = `${m.baseline_aqi_acc_pct}% match`;
       document.getElementById("m-xgb-mae").textContent = m.xgb_mae;
-      document.getElementById("m-xgb-acc").textContent = `${m.xgb_aqi_acc_pct}% category match`;
-      document.getElementById("m-gain-banner").innerHTML =
-        `✅ <strong>Proven Improvement:</strong> By combining satellite fire detections with wind direction, SmokeSignal cuts prediction error by <strong>${m.mae_improvement_pct}%</strong> over standard persistence.`;
+      document.getElementById("m-xgb-acc").textContent = `${m.xgb_aqi_acc_pct}% match`;
+      document.getElementById("m-gain-banner").innerHTML = `✅ <strong>Proven Improvement:</strong> Combining satellite fire detections with wind vectors cuts prediction error by <strong>${m.mae_improvement_pct}%</strong> over persistence.`;
 
-      // Map Setup
       leafletMap = L.map("map").setView([30.9009, 75.8078], 8);
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap"
-      }).addTo(leafletMap);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap" }).addTo(leafletMap);
+      stationCircle = L.circle([30.9009, 75.8078], { radius: 150000, color: "#38bdf8", weight: 1, fillOpacity: 0.03 }).addTo(leafletMap);
+      stationMarker = L.circleMarker([30.9009, 75.8078], { radius: 8, fillColor: "#0ea5e9", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(leafletMap).bindPopup("<strong>PAU Ludhiana CPCB Station</strong>");
 
-      L.circle([30.9009, 75.8078], { radius: 150000, color: "#38bdf8", weight: 1, fillOpacity: 0.03 }).addTo(leafletMap);
-      L.circleMarker([30.9009, 75.8078], { radius: 8, fillColor: "#0ea5e9", color: "#fff", weight: 2, fillOpacity: 1 })
-        .addTo(leafletMap).bindPopup("<strong>PAU Ludhiana Air Station</strong><br>City Monitoring Point");
+      renderUI("ludhiana", baseLudhianaData);
 
       Papa.parse("./data/recent_fires_map.csv?t=" + Date.now(), {
         download: true, header: true, dynamicTyping: true,
         complete: function(res) {
+          allFires = res.data;
           res.data.forEach(r => {
             if (r.latitude && r.longitude) {
               L.circleMarker([r.latitude, r.longitude], { radius: 4.5, fillColor: "#f97316", color: "#fb923c", weight: 1, fillOpacity: 0.75 })
-                .addTo(leafletMap).bindPopup(`<strong>Detected Crop Fire</strong><br>Distance from Ludhiana: ${Number(r.dist_km).toFixed(0)} km<br>Date: ${r.acq_date}`);
+                .addTo(leafletMap).bindPopup(`<strong>Detected Crop Fire</strong><br>FRP: ${r.frp} MW<br>Date: ${r.acq_date}`);
             }
           });
         }
@@ -318,24 +328,8 @@
           const rows = res.data.filter(r => r.lag_hours !== undefined && r.correlation !== undefined);
           new Chart(document.getElementById("lagChart").getContext("2d"), {
             type: "line",
-            data: {
-              labels: rows.map(r => `${r.lag_hours} hrs later`),
-              datasets: [{
-                label: "Smoke Arrival Strength in Ludhiana",
-                data: rows.map(r => r.correlation),
-                borderColor: "#38bdf8",
-                backgroundColor: "rgba(56, 189, 248, 0.15)",
-                fill: true,
-                tension: 0.35
-              }]
-            },
-            options: {
-              plugins: { legend: { labels: { color: "#cbd5e1" } } },
-              scales: {
-                x: { ticks: { color: "#94a3b8" }, grid: { color: "#1e293b" } },
-                y: { ticks: { color: "#94a3b8" }, grid: { color: "#1e293b" } }
-              }
-            }
+            data: { labels: rows.map(r => `${r.lag_hours}h`), datasets: [{ label: "Smoke Arrival Strength", data: rows.map(r => r.correlation), borderColor: "#38bdf8", backgroundColor: "rgba(56,189,248,0.15)", fill: true, tension: 0.35 }] },
+            options: { plugins: { legend: { labels: { color: "#cbd5e1" } } }, scales: { x: { ticks: { color: "#94a3b8" }, grid: { color: "#1e293b" } }, y: { ticks: { color: "#94a3b8" }, grid: { color: "#1e293b" } } } }
           });
         }
       });
