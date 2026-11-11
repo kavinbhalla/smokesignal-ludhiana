@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmokeSignal Ludhiana | Live AI Air Quality Forecast</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-6 mb-6">
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight text-white">🌫️ SmokeSignal Ludhiana</h1>
+        <p class="text-slate-400 mt-1 text-sm">
+          Physics-informed XGBoost forecasting next-day PM2.5 at PAU Ludhiana (30.9009° N, 75.8078° E) from NASA VIIRS farm fires &amp; Open-Meteo wind vectors.
+        </p>
+      </div>
+      <div class="mt-4 md:mt-0 text-right">
+        <span class="inline-block bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded-full border border-slate-700" id="last-updated">
+          Loading latest forecast...
+        </span>
+      </div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <p class="text-xs uppercase tracking-wider text-slate-400">Tomorrow's Predicted PM2.5 (PAU)</p>
+        <p class="text-3xl font-bold mt-2 text-white" id="kpi-pm25">-- µg/m³</p>
+        <p class="text-xs mt-2 text-slate-400" id="kpi-pm25-delta">Today: -- µg/m³</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <p class="text-xs uppercase tracking-wider text-slate-400">Predicted CPCB AQI Category</p>
+        <p class="text-3xl font-bold mt-2" id="kpi-cat">--</p>
+        <p class="text-xs mt-2 text-slate-400" id="kpi-cat-today">Today's Category: --</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <p class="text-xs uppercase tracking-wider text-slate-400">Fires Detected (&lt;150 km)</p>
+        <p class="text-3xl font-bold mt-2 text-orange-400" id="kpi-fires">--</p>
+        <p class="text-xs mt-2 text-slate-400" id="kpi-nw-fires">-- in Upwind NW Sector</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <p class="text-xs uppercase tracking-wider text-slate-400">Smoke Arrival Time Lag</p>
+        <p class="text-3xl font-bold mt-2 text-sky-400" id="kpi-lag">-- Hours</p>
+        <p class="text-xs mt-2 text-slate-400" id="kpi-wind">Wind: -- km/h | BLH: -- m</p>
+      </div>
+    </div>
+
+    <!-- Bilingual Health Advisory -->
+    <div id="advisory-box" class="rounded-xl p-5 mb-6 border-l-4 bg-slate-900 border-orange-500">
+      <h2 class="text-lg font-semibold mb-2" id="adv-title">🩺 Tomorrow's Health Advisory</h2>
+      <p class="text-sm text-slate-200 mb-2"><strong>English:</strong> <span id="adv-en">Loading advisory...</span></p>
+      <p class="text-base text-amber-200"><strong>ਪੰਜਾਬੀ (Punjabi):</strong> <span id="adv-pa">ਸਲਾਹ ਲੋਡ ਹੋ ਰਹੀ ਹੈ...</span></p>
+    </div>
+
+    <!-- Map + SHAP Drivers -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+      <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <h3 class="text-lg font-semibold mb-1">🔥 Active Farm Fires Around Ludhiana (150 km Radius)</h3>
+        <p class="text-xs text-slate-400 mb-3">🟠 Orange markers: NASA VIIRS thermal anomalies | 🔵 Blue marker: PAU Ludhiana CPCB Station</p>
+        <div id="map" class="w-full h-96 rounded-lg border border-slate-800"></div>
+      </div>
+
+      <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+        <div>
+          <h3 class="text-lg font-semibold mb-1">🧠 Why the AI Predicts This (SHAP Drivers)</h3>
+          <p class="text-xs text-slate-400 mb-3">Top physical factors pushing tomorrow's forecast up (+) or down (-) in µg/m³:</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 text-xs">
+                  <th class="py-2">Feature</th>
+                  <th class="py-2">Today's Value</th>
+                  <th class="py-2 text-right">SHAP Impact (µg/m³)</th>
+                </tr>
+              </thead>
+              <tbody id="shap-tbody" class="divide-y divide-slate-800/60"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800">
+          <p class="text-xs text-slate-400 mb-2">Global SHAP Feature Importance (2024–2025 Seasons):</p>
+          <img src="./artifacts/shap_summary.png" alt="SHAP Summary Plot" class="w-full rounded-lg border border-slate-800 bg-white p-1" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Evaluation + Time-Lag Chart -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <h3 class="text-lg font-semibold mb-2">📊 Honest Model Evaluation (2024–2025 Seasons)</h3>
+        <p class="text-xs text-slate-400 mb-4">Trained on 2019–2023; tested strictly out-of-sample on 2024 &amp; 2025 Oct–Nov burning seasons.</p>
+        <table class="w-full text-left text-sm border-collapse mb-4">
+          <thead>
+            <tr class="border-b border-slate-800 text-slate-400 text-xs">
+              <th class="py-2">Model</th>
+              <th class="py-2">MAE (µg/m³)</th>
+              <th class="py-2">RMSE (µg/m³)</th>
+              <th class="py-2">AQI Category Acc</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800">
+            <tr>
+              <td class="py-3 font-medium text-slate-300">Persistence Baseline (Tomorrow = Today)</td>
+              <td class="py-3" id="m-base-mae">--</td>
+              <td class="py-3" id="m-base-rmse">--</td>
+              <td class="py-3" id="m-base-acc">--</td>
+            </tr>
+            <tr class="bg-emerald-950/30">
+              <td class="py-3 font-semibold text-emerald-400">SmokeSignal XGBoost (Fires + Wind + BLH)</td>
+              <td class="py-3 font-semibold text-emerald-300" id="m-xgb-mae">--</td>
+              <td class="py-3 font-semibold text-emerald-300" id="m-xgb-rmse">--</td>
+              <td class="py-3 font-semibold text-emerald-300" id="m-xgb-acc">--</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="bg-emerald-950/50 border border-emerald-800/60 text-emerald-300 text-sm px-4 py-3 rounded-lg" id="m-gain-banner">
+          Loading evaluation gain...
+        </div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <h3 class="text-lg font-semibold mb-1">⏱️ Plume Transport Time-Lag Analysis</h3>
+        <p class="text-xs text-slate-400 mb-3">Cross-correlation between hourly satellite fire radiative power and PAU Ludhiana PM2.5 surge:</p>
+        <canvas id="lagChart" height="170"></canvas>
+      </div>
+    </div>
+
+    <footer class="text-center text-xs text-slate-500 mt-10 pt-6 border-t border-slate-900">
+      Built by Kavin Bhalla • Ludhiana, Punjab • Automated daily via GitHub Actions &amp; Vercel
+    </footer>
+  </div>
+
+  <script>
+    const ADVISORIES = {
+      "Good": {
+        color: "#22c55e",
+        en: "Air quality is clean. Ideal conditions for outdoor sports, running, and cycling across Ludhiana.",
+        pa: "ਹਵਾ ਦੀ ਗੁਣਵੱਤਾ ਸਾਫ਼ ਹੈ। ਲੁਧਿਆਣਾ ਵਿੱਚ ਬਾਹਰੀ ਖੇਡਾਂ, ਦੌੜਨ ਅਤੇ ਸਾਈਕਲ ਚਲਾਉਣ ਲਈ ਮੌਸਮ ਬਿਲਕੁਲ ਅਨੁਕੂਲ ਹੈ।"
+      },
+      "Satisfactory": {
+        color: "#84cc16",
+        en: "Air quality is acceptable. Unusually sensitive individuals with asthma should monitor heavy outdoor exertion.",
+        pa: "ਹਵਾ ਦੀ ਗੁਣਵੱਤਾ ਤਸੱਲੀਬਖਸ਼ ਹੈ। ਸਾਹ ਜਾਂ ਦਮੇ ਦੇ ਮਰੀਜ਼ਾਂ ਨੂੰ ਜ਼ਿਆਦਾ ਭਾਰੀ ਕਸਰਤ ਵੇਲੇ ਥੋੜ੍ਹੀ ਸਾਵਧਾਨੀ ਵਰਤਣੀ ਚਾਹੀਦੀ ਹੈ।"
+      },
+      "Moderate": {
+        color: "#eab308",
+        en: "Moderate particulate buildup. Consider reducing prolonged high-intensity outdoor workouts during early morning inversion hours.",
+        pa: "ਹਵਾ ਵਿੱਚ ਪ੍ਰਦੂਸ਼ਣ ਦਾ ਪੱਧਰ ਦਰਮਿਆਨਾ ਹੈ। ਸਵੇਰ ਵੇਲੇ ਧੂੰਏਂ ਦੀ ਪਰਤ ਕਾਰਨ ਲੰਬੀ ਬਾਹਰੀ ਕਸਰਤ ਘੱਟ ਕਰਨ ਦੀ ਸਲਾਹ ਦਿੱਤੀ ਜਾਂਦੀ ਹੈ।"
+      },
+      "Poor": {
+        color: "#f97316",
+        en: "Poor air quality driven by regional crop-residue smoke. Shift school sports indoors, wear an N95 mask during commutes, and keep windows closed after sunset.",
+        pa: "ਪਰਾਲੀ ਦੇ ਧੂੰਏਂ ਕਾਰਨ ਹਵਾ ਦੀ ਗੁਣਵੱਤਾ ਖਰਾਬ ਹੈ। ਸਕੂਲੀ ਖੇਡਾਂ ਅੰਦਰ ਕਰਵਾਓ, ਬਾਹਰ ਜਾਣ ਸਮੇਂ N95 ਮਾਸਕ ਪਹਿਨੋ ਅਤੇ ਸ਼ਾਮ ਤੋਂ ਬਾਅਦ ਖਿੜਕੀਆਂ ਬੰਦ ਰੱਖੋ।"
+      },
+      "Very Poor": {
+        color: "#ef4444",
+        en: "Very Poor air quality alert! Avoid outdoor morning runs and assemblies. Children, elders, and asthma patients should stay indoors with air filtration.",
+        pa: "ਹਵਾ ਦੀ ਗੁਣਵੱਤਾ ਬਹੁਤ ਖਰਾਬ ਹੈ! ਸਵੇਰ ਦੀ ਸੈਰ ਅਤੇ ਬਾਹਰੀ ਸਭਾਵਾਂ ਤੋਂ ਬਚੋ। ਬੱਚਿਆਂ, ਬਜ਼ੁਰਗਾਂ ਅਤੇ ਸਾਹ ਦੇ ਮਰੀਜ਼ਾਂ ਨੂੰ ਘਰ ਦੇ ਅੰਦਰ ਰਹਿਣ ਦੀ ਸਖ਼ਤ ਸਲਾਹ ਦਿੱਤੀ ਜਾਂਦੀ ਹੈ।"
+      },
+      "Severe": {
+        color: "#991b1b",
+        en: "SEVERE SMOG EMERGENCY. Strict N95 usage outdoors, halt all outdoor physical training, and seal door/window drafts.",
+        pa: "ਗੰਭੀਰ ਧੂੰਏਂ ਦੀ ਚੇਤਾਵਨੀ! ਬਾਹਰ ਨਿਕਲਣ ਵੇਲੇ N95 ਮਾਸਕ ਲਾਜ਼ਮੀ ਪਹਿਨੋ, ਸਾਰੀਆਂ ਬਾਹਰੀ ਖੇਡਾਂ ਬੰਦ ਰੱਖੋ ਅਤੇ ਦਰਵਾਜ਼ੇ-ਖਿੜਕੀਆਂ ਚੰਗੀ ਤਰ੍ਹਾਂ ਬੰਦ ਰੱਖੋ।"
+      }
+    };
+
+    async function initDashboard() {
+      // 1. Load Forecast JSON
+      const res = await fetch("./artifacts/latest_forecast.json?t=" + Date.now());
+      const fc = await res.json();
+
+      document.getElementById("last-updated").textContent = `Forecast Base Date: ${fc.forecast_generated_on}`;
+      document.getElementById("kpi-pm25").textContent = `${fc.tomorrow_pm25_xgb} µg/m³`;
+      const diff = (fc.tomorrow_pm25_xgb - fc.today_pm25).toFixed(1);
+      document.getElementById("kpi-pm25-delta").textContent = `Today: ${fc.today_pm25} µg/m³ (${diff >= 0 ? '+' : ''}${diff} vs Today)`;
+
+      const cat = fc.tomorrow_category_xgb;
+      const adv = ADVISORIES[cat] || ADVISORIES["Poor"];
+      const catEl = document.getElementById("kpi-cat");
+      catEl.textContent = cat;
+      catEl.style.color = adv.color;
+      document.getElementById("kpi-cat-today").textContent = `Today's Category: ${fc.today_category}`;
+
+      document.getElementById("kpi-fires").textContent = fc.fire_count_150km_today;
+      document.getElementById("kpi-nw-fires").textContent = `${fc.nw_cluster_fires_today} in Upwind NW Sector`;
+      document.getElementById("kpi-lag").textContent = `~${fc.best_lag_hours} Hours`;
+      document.getElementById("kpi-wind").textContent = `Wind: ${fc.wind_speed_kmh} km/h (${fc.wind_dir_deg}°) | BLH: ${fc.blh_m} m`;
+
+      // Advisory Banner
+      const advBox = document.getElementById("advisory-box");
+      advBox.style.borderLeftColor = adv.color;
+      document.getElementById("adv-title").textContent = `🩺 Tomorrow's Health Advisory (${cat} Air Quality)`;
+      document.getElementById("adv-en").textContent = adv.en;
+      document.getElementById("adv-pa").textContent = adv.pa;
+
+      // SHAP Table
+      const tbody = document.getElementById("shap-tbody");
+      fc.top_shap_drivers.forEach(d => {
+        const sign = d.shap_impact_ugm3 >= 0 ? "+" : "";
+        const color = d.shap_impact_ugm3 >= 0 ? "text-rose-400" : "text-emerald-400";
+        tbody.innerHTML += `
+          <tr>
+            <td class="py-2 font-mono text-xs text-slate-200">${d.feature}</td>
+            <td class="py-2 text-slate-300">${d.value}</td>
+            <td class="py-2 text-right font-semibold ${color}">${sign}${d.shap_impact_ugm3}</td>
+          </tr>`;
+      });
+
+      // Evaluation Metrics
+      const m = fc.metrics_2024_2025;
+      document.getElementById("m-base-mae").textContent = m.baseline_mae;
+      document.getElementById("m-base-rmse").textContent = m.baseline_rmse;
+      document.getElementById("m-base-acc").textContent = `${m.baseline_aqi_acc_pct}%`;
+      document.getElementById("m-xgb-mae").textContent = m.xgb_mae;
+      document.getElementById("m-xgb-rmse").textContent = m.xgb_rmse;
+      document.getElementById("m-xgb-acc").textContent = `${m.xgb_aqi_acc_pct}%`;
+      document.getElementById("m-gain-banner").innerHTML =
+        `<strong>Gain over Baseline:</strong> SmokeSignal reduces next-day PM2.5 prediction error (MAE) by <strong>${m.mae_improvement_pct}%</strong> compared to persistence.`;
+
+      // 2. Initialize Leaflet Map
+      const map = L.map("map").setView([30.9009, 75.8078], 8);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        attribution: "&copy; OpenStreetMap &copy; CARTO"
+      }).addTo(map);
+
+      // 150 km radius ring around PAU Ludhiana
+      L.circle([30.9009, 75.8078], {
+        radius: 150000,
+        color: "#38bdf8",
+        weight: 1,
+        fillOpacity: 0.03
+      }).addTo(map);
+
+      // PAU Station Marker
+      L.circleMarker([30.9009, 75.8078], {
+        radius: 8,
+        fillColor: "#0ea5e9",
+        color: "#ffffff",
+        weight: 2,
+        fillOpacity: 1
+        }).addTo(map).bindPopup("<strong>PAU Ludhiana CPCB Station</strong><br>Receptor Coordinate (30.9009° N, 75.8078° E)");
+
+      // Load Recent Fires CSV
+      Papa.parse("./data/recent_fires_map.csv?t=" + Date.now(), {
+        download: true,
+        header: true,
+        dynamicTyping: true,
+        complete: function(results) {
+          results.data.forEach(row => {
+            if (row.latitude && row.longitude) {
+              L.circleMarker([row.latitude, row.longitude], {
+                radius: 4.5,
+                fillColor: "#f97316",
+                color: "#fb923c",
+                weight: 1,
+                fillOpacity: 0.75
+              }).addTo(map).bindPopup(
+                `<strong>Farm Fire Anomaly</strong><br>Date: ${row.acq_date}<br>FRP: ${row.frp} MW<br>Distance: ${Number(row.dist_km).toFixed(1)} km`
+              );
+            }
+          });
+        }
+      });
+
+      // 3. Load Time-Lag Curve CSV
+      Papa.parse("./artifacts/time_lag_curve.csv?t=" + Date.now(), {
+        download: true,
+        header: true,
+        dynamicTyping: true,
+        complete: function(results) {
+          const rows = results.data.filter(r => r.lag_hours !== undefined && r.correlation !== undefined);
+          const ctx = document.getElementById("lagChart").getContext("2d");
+          new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: rows.map(r => `${r.lag_hours}h`),
+              datasets: [{
+                label: "Cross-Correlation (Upwind FRP vs PAU PM2.5)",
+                data: rows.map(r => r.correlation),
+                borderColor: "#38bdf8",
+                backgroundColor: "rgba(56, 189, 248, 0.15)",
+                fill: true,
+                tension: 0.3
+              }]
+            },
+            options: {
+              plugins: { legend: { labels: { color: "#cbd5e1" } } },
+              scales: {
+                x: { ticks: { color: "#94a3b8" }, grid: { color: "#1e293b" } },
+                y: { ticks: { color: "#94a3b8" }, grid: { color: "#1e293b" } }
+              }
+            }
+          });
+        }
+      });
+    }
+
+    initDashboard();
+  </script>
+</body>
+</html>
