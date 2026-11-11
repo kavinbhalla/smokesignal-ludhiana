@@ -1,51 +1,51 @@
 {
-  "forecast_generated_on": "2026-11-11",
-  "today_pm25": 76.3,
-  "today_category": "Moderate",
-  "tomorrow_pm25_xgb": 86.0,
+  "forecast_generated_on": "2026-11-12",
+  "today_pm25": 91.0,
+  "today_category": "Poor",
+  "tomorrow_pm25_xgb": 86.4,
   "tomorrow_category_xgb": "Moderate",
-  "tomorrow_pm25_baseline": 76.3,
-  "fire_count_150km_today": 753,
-  "nw_cluster_fires_today": 262,
-  "wind_speed_kmh": 6.4,
-  "wind_dir_deg": 301.0,
-  "blh_m": 335.0,
+  "tomorrow_pm25_baseline": 91.0,
+  "fire_count_150km_today": 148,
+  "nw_cluster_fires_today": 43,
+  "wind_speed_kmh": 3.8,
+  "wind_dir_deg": 292.0,
+  "blh_m": 257.0,
   "best_lag_hours": 32,
   "metrics_2024_2025": {
     "baseline_mae": 10.63,
-    "xgb_mae": 12.2,
+    "xgb_mae": 11.72,
     "baseline_rmse": 14.85,
-    "xgb_rmse": 17.13,
-    "xgb_r2": 0.749,
+    "xgb_rmse": 16.83,
+    "xgb_r2": 0.758,
     "baseline_aqi_acc_pct": 67.2,
-    "xgb_aqi_acc_pct": 63.1,
-    "mae_improvement_pct": -14.7
+    "xgb_aqi_acc_pct": 67.2,
+    "mae_improvement_pct": -10.2
   },
   "top_shap_drivers": [
     {
-      "feature": "pm25_roll3",
-      "value": 84.37,
-      "shap_impact_ugm3": -8.7
+      "feature": "pm25_today",
+      "value": 91.04,
+      "shap_impact_ugm3": 14.96
     },
     {
-      "feature": "pm25_today",
-      "value": 76.29,
-      "shap_impact_ugm3": 6.31
+      "feature": "pm25_roll3",
+      "value": 81.6,
+      "shap_impact_ugm3": -10.26
     },
     {
       "feature": "upwind_frp_index",
-      "value": 52.33,
-      "shap_impact_ugm3": 4.49
+      "value": 18.34,
+      "shap_impact_ugm3": 4.1
     },
     {
-      "feature": "fire_count_150km",
-      "value": 753.0,
-      "shap_impact_ugm3": 3.16
+      "feature": "wind_dir_deg",
+      "value": 291.78,
+      "shap_impact_ugm3": 2.7
     },
     {
-      "feature": "total_frp_mw",
-      "value": 13735.69,
-      "shap_impact_ugm3": 2.92
+      "feature": "blh_min",
+      "value": 20.0,
+      "shap_impact_ugm3": -2.56
     }
   ]
 }
