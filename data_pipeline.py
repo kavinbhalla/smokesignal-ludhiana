@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 PAU_LAT = 30.9009
 PAU_LON = 75.8078
 RADIUS_KM = 150.0
-BBOX = "74.20,29.55,77.40,32.25"
+BBOX = "73.80,29.30,77.60,32.60"
 
 os.makedirs("data", exist_ok=True)
 os.makedirs("artifacts", exist_ok=True)
